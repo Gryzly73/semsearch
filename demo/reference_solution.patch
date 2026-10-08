@@ -1,0 +1,179 @@
+diff --git a/src/minisearch/cli.py b/src/minisearch/cli.py
+index 0e3abd0..bad970c 100644
+--- a/src/minisearch/cli.py
++++ b/src/minisearch/cli.py
+@@ -14,10 +14,20 @@ from .index import Index
+ DEFAULT_CORPUS = Path(__file__).resolve().parents[2] / "data" / "corpus.jsonl"
+ 
+ 
+-def _cmd_search(args: argparse.Namespace) -> int:
++def _cmd_index(args: argparse.Namespace) -> int:
+     index = Index(HashingEmbedder())
+     index.add_many(load_jsonl(args.corpus))
+-    for doc, score in index.search(args.query, k=args.k):
++    index.save(args.out)
++    return 0
++
++
++def _cmd_search(args: argparse.Namespace) -> int:
++    if args.index:
++        index = Index.load(args.index, HashingEmbedder())
++    else:
++        index = Index(HashingEmbedder())
++        index.add_many(load_jsonl(args.corpus))
++    for doc, score in index.search(args.query, k=args.k, lang=args.lang):
+         print(f"{doc.id}\t{score:.3f}\t{doc.text[:60]}")
+     return 0
+ 
+@@ -26,9 +36,16 @@ def main(argv: list[str] | None = None) -> int:
+     parser = argparse.ArgumentParser(prog="minisearch")
+     sub = parser.add_subparsers(dest="cmd", required=True)
+ 
+-    p_search = sub.add_parser("search", help="search the corpus")
++    p_index = sub.add_parser("index", help="build and save an index")
++    p_index.add_argument("--corpus", default=str(DEFAULT_CORPUS))
++    p_index.add_argument("--out", required=True)
++    p_index.set_defaults(func=_cmd_index)
++
++    p_search = sub.add_parser("search", help="search the corpus or a saved index")
+     p_search.add_argument("query")
+     p_search.add_argument("--corpus", default=str(DEFAULT_CORPUS))
++    p_search.add_argument("--index")
++    p_search.add_argument("--lang")
+     p_search.add_argument("-k", type=int, default=3)
+     p_search.set_defaults(func=_cmd_search)
+ 
+diff --git a/src/minisearch/embed.py b/src/minisearch/embed.py
+index 044b10f..cdbced3 100644
+--- a/src/minisearch/embed.py
++++ b/src/minisearch/embed.py
+@@ -1,6 +1,7 @@
+ """Embedders turn text into fixed-size vectors."""
+ 
+ import math
++import zlib
+ from typing import Protocol
+ 
+ from .tokenize import tokenize
+@@ -21,7 +22,7 @@ class HashingEmbedder:
+     def embed(self, text: str) -> list[float]:
+         vec = [0.0] * self.dim
+         for token in tokenize(text):
+-            vec[hash(token) % self.dim] += 1.0
++            vec[zlib.crc32(token.encode("utf-8")) % self.dim] += 1.0
+         norm = math.sqrt(sum(v * v for v in vec))
+         if norm == 0.0:
+             return vec
+diff --git a/src/minisearch/index.py b/src/minisearch/index.py
+index e6ab76f..1d8e9e5 100644
+--- a/src/minisearch/index.py
++++ b/src/minisearch/index.py
+@@ -1,5 +1,8 @@
+ """In-memory vector index with cosine search."""
+ 
++import json
++from pathlib import Path
++
+ from .corpus import Document
+ from .embed import Embedder
+ 
+@@ -22,9 +25,30 @@ class Index:
+         for doc in docs:
+             self.add(doc)
+ 
+-    def search(self, query: str, k: int = 5) -> list[tuple[Document, float]]:
+-        """Return the top-k documents by cosine similarity (vectors are unit length)."""
++    def search(
++        self, query: str, k: int = 5, lang: str | None = None
++    ) -> list[tuple[Document, float]]:
++        """Top-k by cosine similarity, optionally restricted to one language."""
+         q = self.embedder.embed(query)
+-        scored = [(doc, _dot(q, vec)) for doc, vec in zip(self.docs, self.vectors, strict=True)]
++        scored = [
++            (doc, _dot(q, vec))
++            for doc, vec in zip(self.docs, self.vectors, strict=True)
++            if lang is None or doc.lang == lang
++        ]
+         scored.sort(key=lambda pair: (-pair[1], pair[0].id))
+         return [(d, s) for d, s in scored[:k] if s > 0.0]
++
++    def save(self, path: str | Path) -> None:
++        payload = {
++            "docs": [{"id": d.id, "text": d.text, "lang": d.lang} for d in self.docs],
++            "vectors": self.vectors,
++        }
++        Path(path).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
++
++    @classmethod
++    def load(cls, path: str | Path, embedder: Embedder) -> "Index":
++        payload = json.loads(Path(path).read_text(encoding="utf-8"))
++        index = cls(embedder)
++        index.docs = [Document(**d) for d in payload["docs"]]
++        index.vectors = payload["vectors"]
++        return index
+diff --git a/src/minisearch/tokenize.py b/src/minisearch/tokenize.py
+index f0da70b..9d14520 100644
+--- a/src/minisearch/tokenize.py
++++ b/src/minisearch/tokenize.py
+@@ -1,10 +1,33 @@
+-"""Text -> tokens."""
++"""Text -> tokens (English + Russian)."""
+ 
+ import re
+ 
+-_TOKEN = re.compile(r"[a-z0-9]+")
++_TOKEN = re.compile(r"[a-zа-яё0-9]+")
++_STOP = frozenset(
++    "как что для при из за на в во с со и а о об по к от до не ли же бы у но или это есть".split()
++)
++_SUFFIXES = sorted(
++    (
++        "ами ями ого его ому ему ыми ими ией ах ях ов ев ой ей ом ем ам ям ую юю ая яя ое ее "
++        "ые ие ых их ым им ть ет ит ют ут ат ят ешь ишь ется ится ла ло ли на ны ни ну ню "
++        "а я о е ы и у ю ь й"
++    ).split(),
++    key=len,
++    reverse=True,
++)
++
++
++def stem(token: str) -> str:
++    """Very small suffix stripper for Russian; other tokens are returned unchanged."""
++    if not token or not ("а" <= token[0] <= "я"):
++        return token
++    for suffix in _SUFFIXES:
++        if token.endswith(suffix) and len(token) - len(suffix) >= 3:
++            return token[: -len(suffix)]
++    return token
+ 
+ 
+ def tokenize(text: str) -> list[str]:
+-    """Lowercase the text and split it into alphanumeric tokens."""
+-    return _TOKEN.findall(text.lower())
++    """Lowercase, fold ё to е, split, drop Russian stopwords, stem Russian tokens."""
++    tokens = _TOKEN.findall(text.lower().replace("ё", "е"))
++    return [stem(t) for t in tokens if t not in _STOP]
+diff --git a/tests/unit/test_embed_stable.py b/tests/unit/test_embed_stable.py
+new file mode 100644
+index 0000000..2997d64
+--- /dev/null
++++ b/tests/unit/test_embed_stable.py
+@@ -0,0 +1,18 @@
++import os
++import subprocess
++import sys
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++CODE = "from minisearch import HashingEmbedder; print(HashingEmbedder().embed('hello world'))"
++
++
++def _embed(seed: str) -> str:
++    env = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "PYTHONHASHSEED": seed}
++    return subprocess.run(
++        [sys.executable, "-c", CODE], capture_output=True, text=True, env=env, check=True
++    ).stdout
++
++
++def test_embedding_does_not_depend_on_hash_seed():
++    assert _embed("1") == _embed("2")

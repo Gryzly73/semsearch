@@ -1,0 +1,10 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.pyc
+index.json
+.loop/last_failure.txt
+.loop/*.log
+.loop/runs/

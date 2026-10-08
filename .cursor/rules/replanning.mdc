@@ -1,0 +1,20 @@
+---
+description: When and how to change the plan (dynamic workflow)
+alwaysApply: true
+---
+The plan is a living document. You may and should change `PLAN.md` when reality differs from it.
+
+Replan when ANY of these is true after you tried the task:
+- the `done when` command still fails and the cause is outside the task's scope;
+- you found a root cause in another module that must be fixed first;
+- the task is too big for one iteration.
+
+How:
+1. Do not push on blindly. Stop making code changes that do not move the check.
+2. Insert subtasks directly under the parent, indented by two spaces, in the same format:
+   `  - [ ] T<parent>.<n> <title>` and a line `    - done when: \`<command>\``.
+   Every subtask MUST have a `done when` command that exits 0 only when it is really done.
+3. Leave the parent unchecked. The harness will return to it after its children are done.
+4. Append one line to `PROGRESS.md`: `iter <n> REPLAN T<id>: <why>`.
+5. Keep working tree changes that are correct; do not revert good work.
+Never delete or reword existing tasks. Only add subtasks.

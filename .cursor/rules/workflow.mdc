@@ -1,0 +1,15 @@
+---
+description: How to work in this repo (one iteration = one task)
+alwaysApply: true
+---
+You run inside an external loop (`loop.sh`). Every iteration is a fresh session with no memory of previous ones.
+Your memory is the files: `SPEC.md`, `PLAN.md`, `PROGRESS.md`, and `.loop/last_failure.txt` if it exists.
+
+1. Work ONLY on the task given in the prompt (its id and its `done when` command).
+2. Make the smallest change that can satisfy the `done when` command. Run it yourself before finishing.
+3. Also run `make check`. Do not leave it red.
+4. Do NOT tick checkboxes, do NOT commit, do NOT push. The harness verifies and ticks.
+5. NEVER edit: `tests/acceptance/`, `eval/`, `data/`, `SPEC.md`, `harness/`, `loop.sh`, `.cursor/`.
+   The harness reverts such edits and counts them as a violation.
+6. Runtime code uses the standard library only.
+7. Finish by appending ONE line to `PROGRESS.md`: `iter <n> T<id>: <what you did / what blocked you>`.
