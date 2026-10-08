@@ -1,3 +1,8 @@
+import sys
+
+import pytest
+
+from harness.loop import parse_check
 from harness.plan import next_leaf, parse, set_mark
 
 PLAN = """\
@@ -30,3 +35,36 @@ def test_check_command_is_attached_to_its_task():
 def test_nothing_left():
     text = set_mark(set_mark(set_mark(PLAN, "T2.1", "x"), "T2", "x"), "T3", "x")
     assert next_leaf(parse(text)) is None
+
+
+def test_done_when_is_parsed_without_a_shell():
+    commands = parse_check(
+        "pytest -q tests/acceptance/test_russian.py && "
+        "python -m minisearch.evaluate --set ru --min-recall 0.9"
+    )
+    assert commands == [
+        [sys.executable, "-m", "pytest", "-q", "tests/acceptance/test_russian.py"],
+        [
+            sys.executable,
+            "-m",
+            "minisearch.evaluate",
+            "--set",
+            "ru",
+            "--min-recall",
+            "0.9",
+        ],
+    ]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "pytest -q; git status",
+        "python -c 'print(1)'",
+        "curl https://example.com",
+        "pytest -q &&",
+    ],
+)
+def test_done_when_rejects_non_allowlisted_commands(command):
+    with pytest.raises(ValueError):
+        parse_check(command)

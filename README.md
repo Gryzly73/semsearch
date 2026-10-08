@@ -7,7 +7,7 @@ A tiny search library (hashing embedder + cosine, English and Russian, stdlib on
 SPEC.md      goal + global acceptance          .cursor/rules/      workflow + replanning rules
 PLAN.md      tasks, each with `done when:`     .cursor/commands/   /next-task, /replan
 PROGRESS.md  decision / replan log             .cursor/hooks*      command guard, auto-format
-loop.sh      outer loop (fresh session/iter)   harness/plan.py     plan parser, ticks boxes
+harness/loop.py  cross-platform outer loop     harness/plan.py     plan parser, ticks boxes
 ```
 
 ## Setup
@@ -20,11 +20,20 @@ make check            # green at baseline
 
 ## Run
 ```bash
-./loop.sh                                              # real: cursor-agent
-AGENT_CMD='python3 demo/fake_agent.py' ./loop.sh       # rehearsal without any API
-demo/reset.sh                                          # back to baseline
+# Windows PowerShell
+.\loop.ps1
+$env:AGENT_CMD = "py -3 demo/fake_agent.py"; .\loop.ps1
+.\demo\reset.ps1
+
+# Linux / macOS
+./loop.sh
+AGENT_CMD='python3 demo/fake_agent.py' ./loop.sh
+./demo/reset.sh
 ```
 Env: `MAX_ITER=12 MAX_FAILS=3 ITER_TIMEOUT=600 AGENT_CMD=...`
+
+The Python loop runs `done when` checks without a shell. It accepts `pytest` and
+`python -m minisearch.evaluate`, including chains joined with `&&`.
 
 ## Who does what
 - Agent: edits code, may add subtasks to PLAN.md, logs to PROGRESS.md.

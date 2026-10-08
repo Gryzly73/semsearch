@@ -1,8 +1,10 @@
 # DEMO: сценарий на 30 минут
 
 ## За день до
-1. `pip install -e ".[dev]" && git init -b main && git add -A && git commit -m baseline && make check`
-2. `AGENT_CMD='python3 demo/fake_agent.py' ./loop.sh` затем `demo/reset.sh`. Репетиция без API, 7 итераций, ~3 секунды.
+1. `pip install -e ".[dev]"`, затем проверь `py -3 -m pytest -q`, `py -3 -m ruff check .` и английский eval.
+2. Windows: `$env:AGENT_CMD = "py -3 demo/fake_agent.py"; .\loop.ps1`. Linux/macOS:
+   `AGENT_CMD='python3 demo/fake_agent.py' ./loop.sh`. Репетиция без API, 7 итераций.
+   Сброс: `.\demo\reset.ps1` или `./demo/reset.sh`.
 3. Сверь с актуальной докой Cursor (я не мог запустить `cursor-agent` и Cursor в своей среде):
    - флаги CLI: `cursor-agent --help` (`-p`, `--force`, `--output-format`);
    - формат `.cursor/hooks.json` и поля ответа hook'а (`permission`, `user_message`, `agent_message`);
@@ -20,9 +22,9 @@
 ## Сетка времени
 | Мин | Что показываешь |
 |---|---|
-| 0-3 | Схема: SPEC → PLAN → loop.sh → агент (свежий контекст) → проверки вне агента → коммит |
-| 3-8 | `PLAN.md` (`done when:`), `.cursor/rules/replanning.mdc`, `loop.sh`: защита путей, лимиты, метрики |
-| 8-20 | Живой `./loop.sh` на T1 (и T2, если успеваешь). Параллельно открой второй терминал: `watch -n2 'git log --oneline; cat PLAN.md'` |
+| 0-3 | Схема: SPEC → PLAN → `harness/loop.py` → агент (свежий контекст) → проверки вне агента → коммит |
+| 3-8 | `PLAN.md` (`done when:`), `.cursor/rules/replanning.mdc`, `harness/loop.py`: защита путей, лимиты, метрики |
+| 8-20 | Живой `.\loop.ps1` на T1 (и T2, если успеваешь). Рядом держи `git log --oneline` и `PLAN.md` |
 | 20-25 | `git log -p -- PLAN.md` (агент сам добавил T1.1), `PROGRESS.md`, `.loop/metrics.csv`, `.loop/last_failure.txt` |
 | 25-30 | Trade-off'ы и вопросы (ниже) |
 
