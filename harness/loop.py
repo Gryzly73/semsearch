@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -77,6 +78,14 @@ def parse_agent_command(value: str) -> list[str]:
     args = shlex.split(value, posix=os.name != "nt")
     if not args:
         raise ValueError("AGENT_CMD is empty")
+    if os.name == "nt" and args[0] in {"agent", "cursor-agent"}:
+        executable = shutil.which(args[0])
+        if not executable and os.environ.get("LOCALAPPDATA"):
+            candidate = Path(os.environ["LOCALAPPDATA"]) / "cursor-agent" / f"{args[0]}.cmd"
+            if candidate.exists():
+                executable = str(candidate)
+        if executable:
+            args[0] = executable
     return args
 
 
