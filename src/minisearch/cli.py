@@ -14,9 +14,19 @@ from .index import Index
 DEFAULT_CORPUS = Path(__file__).resolve().parents[2] / "data" / "corpus.jsonl"
 
 
-def _cmd_search(args: argparse.Namespace) -> int:
+def _cmd_index(args: argparse.Namespace) -> int:
     index = Index(HashingEmbedder())
     index.add_many(load_jsonl(args.corpus))
+    index.save(args.out)
+    return 0
+
+
+def _cmd_search(args: argparse.Namespace) -> int:
+    if args.index:
+        index = Index.load(args.index, HashingEmbedder())
+    else:
+        index = Index(HashingEmbedder())
+        index.add_many(load_jsonl(args.corpus))
     for doc, score in index.search(args.query, k=args.k):
         print(f"{doc.id}\t{score:.3f}\t{doc.text[:60]}")
     return 0
@@ -26,9 +36,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="minisearch")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    p_index = sub.add_parser("index", help="build and save an index")
+    p_index.add_argument("--corpus", default=str(DEFAULT_CORPUS))
+    p_index.add_argument("--out", required=True)
+    p_index.set_defaults(func=_cmd_index)
+
     p_search = sub.add_parser("search", help="search the corpus")
     p_search.add_argument("query")
     p_search.add_argument("--corpus", default=str(DEFAULT_CORPUS))
+    p_search.add_argument("--index", default=None)
     p_search.add_argument("-k", type=int, default=3)
     p_search.set_defaults(func=_cmd_search)
 

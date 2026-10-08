@@ -1,0 +1,3 @@
+$ 'C:\Users\MaksimMedvedev\Documents\Job\kultura1701\semsearch\.venv\Scripts\python.exe' -m pytest -q tests/acceptance/test_persistence.py
+..                                                                       [100%]
+2 passed in 8.31s

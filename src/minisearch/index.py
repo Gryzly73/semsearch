@@ -1,5 +1,8 @@
 """In-memory vector index with cosine search."""
 
+import json
+from pathlib import Path
+
 from .corpus import Document
 from .embed import Embedder
 
@@ -28,3 +31,23 @@ class Index:
         scored = [(doc, _dot(q, vec)) for doc, vec in zip(self.docs, self.vectors, strict=True)]
         scored.sort(key=lambda pair: (-pair[1], pair[0].id))
         return [(d, s) for d, s in scored[:k] if s > 0.0]
+
+    def save(self, path: str | Path) -> None:
+        """Persist documents to JSON; vectors are recomputed on load with the given embedder."""
+        payload = {
+            "docs": [{"id": d.id, "text": d.text, "lang": d.lang} for d in self.docs],
+        }
+        Path(path).write_text(json.dumps(payload), encoding="utf-8")
+
+    @classmethod
+    def load(cls, path: str | Path, embedder: Embedder) -> "Index":
+        """Load documents from JSON and re-embed with ``embedder``."""
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        index = cls(embedder)
+        index.add_many(
+            [
+                Document(id=row["id"], text=row["text"], lang=row.get("lang", "en"))
+                for row in payload["docs"]
+            ]
+        )
+        return index
