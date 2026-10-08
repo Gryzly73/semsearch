@@ -25,10 +25,19 @@ class Index:
         for doc in docs:
             self.add(doc)
 
-    def search(self, query: str, k: int = 5) -> list[tuple[Document, float]]:
-        """Return the top-k documents by cosine similarity (vectors are unit length)."""
+    def search(
+        self, query: str, k: int = 5, lang: str | None = None
+    ) -> list[tuple[Document, float]]:
+        """Return the top-k documents by cosine similarity (vectors are unit length).
+
+        If ``lang`` is set, only documents with that language are considered.
+        """
         q = self.embedder.embed(query)
-        scored = [(doc, _dot(q, vec)) for doc, vec in zip(self.docs, self.vectors, strict=True)]
+        scored = [
+            (doc, _dot(q, vec))
+            for doc, vec in zip(self.docs, self.vectors, strict=True)
+            if lang is None or doc.lang == lang
+        ]
         scored.sort(key=lambda pair: (-pair[1], pair[0].id))
         return [(d, s) for d, s in scored[:k] if s > 0.0]
 
