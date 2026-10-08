@@ -1,3 +1,26 @@
-$ 'C:\Users\MaksimMedvedev\Documents\Job\kultura1701\semsearch\.venv\Scripts\python.exe' -m pytest -q tests/acceptance/test_persistence.py
-..                                                                       [100%]
-2 passed in 8.31s
+$ 'C:\Users\MaksimMedvedev\Documents\Job\kultura1701\semsearch\.venv\Scripts\python.exe' -m pytest -q tests/acceptance/test_russian.py
+FF..                                                                     [100%]
+================================== FAILURES ===================================
+____________________ test_cyrillic_tokens_are_not_dropped _____________________
+
+    def test_cyrillic_tokens_are_not_dropped():
+>       assert tokenize("Чёрные дыры") != []
+E       AssertionError: assert [] != []
+E        +  where [] = tokenize('Чёрные дыры')
+
+tests\acceptance\test_russian.py:10: AssertionError
+_____________________ test_inflected_forms_share_a_token ______________________
+
+    def test_inflected_forms_share_a_token():
+>       assert set(tokenize("хлеба")) & set(tokenize("хлеб"))
+E       AssertionError: assert (set() & set())
+E        +  where set() = set([])
+E        +    where [] = tokenize('хлеба')
+E        +  and   set() = set([])
+E        +    where [] = tokenize('хлеб')
+
+tests\acceptance\test_russian.py:14: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/acceptance/test_russian.py::test_cyrillic_tokens_are_not_dropped
+FAILED tests/acceptance/test_russian.py::test_inflected_forms_share_a_token
+2 failed, 2 passed in 0.19s
