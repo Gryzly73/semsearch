@@ -221,7 +221,7 @@ src = ROOT / "src" / "minisearch"
 check_cmd = "pytest -q tests/unit/test_embed_stable.py"
 
 if TASK == "T1":
-    if "def save" not in (src / "index.py").read_text():
+    if "def save" not in (src / "index.py").read_text(encoding="utf-8"):
         (src / "index.py").write_text(INDEX_PY, encoding="utf-8")
         (src / "cli.py").write_text(CLI_PY, encoding="utf-8")
         if sh("pytest -q tests/acceptance/test_persistence.py") != 0:
@@ -233,14 +233,14 @@ if TASK == "T1":
     else:
         log(f"iter {ITER} T1: nothing left to do, children fixed the root cause")
 elif TASK == "T1.1":
-    emb = (src / "embed.py").read_text()
+    emb = (src / "embed.py").read_text(encoding="utf-8")
     emb = emb.replace("import math\n", "import math\nimport zlib\n")
     emb = emb.replace("hash(token)", 'zlib.crc32(token.encode("utf-8"))')
     (src / "embed.py").write_text(emb, encoding="utf-8")
     (ROOT / "tests/unit/test_embed_stable.py").write_text(STABLE_TEST, encoding="utf-8")
     log(f"iter {ITER} T1.1: replaced hash() with zlib.crc32 and added a regression test")
 elif TASK == "T2":
-    if "а-я" not in (src / "tokenize.py").read_text():
+    if "а-я" not in (src / "tokenize.py").read_text(encoding="utf-8"):
         (src / "tokenize.py").write_text(TOKENIZE_REGEX_ONLY, encoding="utf-8")
         # a careless agent also "tunes" the eval set: the harness must catch this
         with open(ROOT / "eval/ru.jsonl", "a", encoding="utf-8") as fh:
@@ -263,7 +263,7 @@ elif TASK == "T2.1":
     (src / "tokenize.py").write_text(TOKENIZE_FULL, encoding="utf-8")
     log(f"iter {ITER} T2.1: added yo-folding, stopwords and a suffix stemmer")
 elif TASK == "T3":
-    idx = (src / "index.py").read_text()
+    idx = (src / "index.py").read_text(encoding="utf-8")
     idx = idx.replace(
         "    def search(self, query: str, k: int = 5) -> list[tuple[Document, float]]:\n"
         '        """Top-k documents by cosine similarity (vectors are unit length)."""\n'
@@ -281,7 +281,7 @@ elif TASK == "T3":
         "        ]",
     )
     (src / "index.py").write_text(idx, encoding="utf-8")
-    cli = (src / "cli.py").read_text()
+    cli = (src / "cli.py").read_text(encoding="utf-8")
     cli = cli.replace(
         '    p_search.add_argument("--index")\n',
         '    p_search.add_argument("--index")\n    p_search.add_argument("--lang")\n',
