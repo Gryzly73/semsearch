@@ -5,8 +5,9 @@
 2. Windows: `$env:AGENT_CMD = "py -3 demo/fake_agent.py"; .\loop.ps1`. Linux/macOS:
    `AGENT_CMD='python3 demo/fake_agent.py' ./loop.sh`. Репетиция без API, 7 итераций.
    Сброс: `.\demo\reset.ps1` или `./demo/reset.sh`.
-3. Сверь с актуальной докой Cursor (я не мог запустить `cursor-agent` и Cursor в своей среде):
-   - флаги CLI: `cursor-agent --help` (`-p`, `--force`, `--output-format`);
+3. Перед показом проверь установленный Cursor Agent CLI:
+   - `agent --version` и `agent status --format json`;
+   - флаги CLI: `agent --help` (`-p`, `--force`, `--output-format`, `--trust`);
    - формат `.cursor/hooks.json` и поля ответа hook'а (`permission`, `user_message`, `agent_message`);
    - что `.cursor/rules/*.mdc` и `.cursor/commands/*.md` подхватываются в твоей версии.
 4. Один настоящий прогон `./loop.sh`, запиши экран как резервное видео.

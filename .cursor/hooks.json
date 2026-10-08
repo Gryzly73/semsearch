@@ -2,10 +2,10 @@
   "version": 1,
   "hooks": {
     "beforeShellExecution": [
-      { "command": "python3 .cursor/hooks/guard.py" }
+      { "command": "python .cursor/hooks/guard.py" }
     ],
     "afterFileEdit": [
-      { "command": "python3 .cursor/hooks/after_edit.py" }
+      { "command": "python .cursor/hooks/after_edit.py" }
     ]
   }
 }

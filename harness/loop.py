@@ -208,7 +208,7 @@ def main() -> int:
     max_fails = int(os.environ.get("MAX_FAILS", "3"))
     iteration_timeout = int(os.environ.get("ITER_TIMEOUT", "600"))
     agent_command = parse_agent_command(
-        os.environ.get("AGENT_CMD", "cursor-agent -p --force --output-format text")
+        os.environ.get("AGENT_CMD", "agent -p --force --output-format text --trust")
     )
 
     try:
@@ -264,7 +264,13 @@ def main() -> int:
         )
 
         started = time.monotonic()
-        env = {**os.environ, "LOOP_ITER": str(iteration), "LOOP_TASK_ID": task_id}
+        python_bin = str(Path(sys.executable).parent)
+        env = {
+            **os.environ,
+            "PATH": python_bin + os.pathsep + os.environ.get("PATH", ""),
+            "LOOP_ITER": str(iteration),
+            "LOOP_TASK_ID": task_id,
+        }
         run_agent(
             agent_command,
             prompt,
